@@ -17,7 +17,7 @@ class RemindersTab extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primaryContainer,
               ),
