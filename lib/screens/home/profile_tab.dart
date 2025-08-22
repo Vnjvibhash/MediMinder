@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mediminder/screens/auth/login_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:mediminder/services/auth_service.dart';
 import 'package:mediminder/providers/medicine_provider.dart';
@@ -37,12 +38,17 @@ class ProfileTab extends StatelessWidget {
                     CircleAvatar(
                       radius: 48,
                       backgroundColor: theme.colorScheme.onPrimaryContainer
-                          .withValues(alpha: 0.1),
-                      child: Icon(
-                        Icons.person,
-                        size: 48,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
+                          .withAlpha(25),
+                      backgroundImage: user?.photoURL != null
+                          ? NetworkImage(user!.photoURL!)
+                          : null,
+                      child: user?.photoURL == null
+                          ? Icon(
+                              Icons.person,
+                              size: 48,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -458,7 +464,9 @@ class ProfileTab extends StatelessWidget {
             onPressed: () async {
               await AuthService().signOut();
               if (context.mounted) {
-                Navigator.pop(context);
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

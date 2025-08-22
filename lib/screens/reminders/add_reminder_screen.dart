@@ -19,11 +19,16 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   final _medicineController = TextEditingController();
   final _doseController = TextEditingController();
   final _categoryController = TextEditingController();
+  final TextEditingController _otherCategoryController =
+      TextEditingController();
 
-  List<TimeOfDay> _selectedTimes = [const TimeOfDay(hour: 8, minute: 0)];
+  final List<TimeOfDay> _selectedTimes = [const TimeOfDay(hour: 8, minute: 0)];
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
-  List<String> _selectedDays = [
+  bool _isLoading = false;
+  bool _isOtherCategorySelected = false;
+
+  final List<String> _selectedDays = [
     'Mon',
     'Tue',
     'Wed',
@@ -32,7 +37,6 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     'Sat',
     'Sun',
   ];
-  bool _isLoading = false;
 
   final List<String> _commonCategories = [
     'Heart',
@@ -45,6 +49,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     'Mental Health',
     'Allergy',
     'Digestive',
+    'Other',
   ];
 
   final List<String> _weekDays = [
@@ -63,6 +68,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     _medicineController.dispose();
     _doseController.dispose();
     _categoryController.dispose();
+    _otherCategoryController.dispose();
     super.dispose();
   }
 
@@ -125,6 +131,27 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
               ),
               const SizedBox(height: 16),
               _buildCategoryDropdown(),
+              if (_isOtherCategorySelected)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: CustomTextField(
+                    controller: _otherCategoryController,
+                    label: 'Enter category',
+                    prefixIcon: Icons.edit,
+                    validator: (value) {
+                      if (_isOtherCategorySelected &&
+                          (value == null || value.isEmpty)) {
+                        return 'Please enter a category';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _categoryController.text = value;
+                      });
+                    },
+                  ),
+                ),
               const SizedBox(height: 32),
 
               _buildSectionHeader('Schedule', Icons.schedule),
@@ -167,34 +194,48 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
 
   Widget _buildCategoryDropdown() {
     final theme = Theme.of(context);
+    final dropdownValue = _commonCategories.contains(_categoryController.text)
+        ? _categoryController.text
+        : 'Other';
+
     return DropdownButtonFormField<String>(
-      value: _categoryController.text.isEmpty ? null : _categoryController.text,
+      value: dropdownValue,
       decoration: InputDecoration(
         labelText: 'Category/Condition',
         prefixIcon: Icon(
           Icons.category_outlined,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          color: theme.colorScheme.onSurface.withAlpha(60),
         ),
         filled: true,
         fillColor: theme.colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            color: theme.colorScheme.outline.withAlpha(30),
           ),
         ),
       ),
       items: _commonCategories.map((category) {
-        return DropdownMenuItem(value: category, child: Text(category));
+        return DropdownMenuItem(
+          value: category,
+          child: Text(category, style: const TextStyle(fontSize: 18)),
+        );
       }).toList(),
       onChanged: (value) {
         setState(() {
           _categoryController.text = value ?? '';
+          _isOtherCategorySelected = value == 'Other';
+          if (!_isOtherCategorySelected) {
+            _otherCategoryController.clear();
+          }
         });
       },
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Please select a category';
+        }
+        if (value == 'Other' && _otherCategoryController.text.isEmpty) {
+          return 'Please enter a category';
         }
         return null;
       },

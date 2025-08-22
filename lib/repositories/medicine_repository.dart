@@ -21,7 +21,7 @@ class MedicineRepository {
           .get();
 
       return snapshot.docs
-          .map((doc) => Patient.fromJson({...doc.data(), 'id': doc.id}))
+          .map((doc) => Patient.fromJson({...doc.data() as Map<String, dynamic>, 'id': doc.id}))
           .toList();
     } catch (e) {
       throw Exception('Failed to get patients: $e');
@@ -100,7 +100,7 @@ class MedicineRepository {
 
       return snapshot.docs
           .map(
-            (doc) => MedicineReminder.fromJson({...doc.data(), 'id': doc.id}),
+            (doc) => MedicineReminder.fromJson({...doc.data() as Map<String, dynamic>, 'id': doc.id}),
           )
           .toList();
     } catch (e) {
@@ -128,7 +128,7 @@ class MedicineRepository {
 
       return snapshot.docs
           .map(
-            (doc) => MedicineReminder.fromJson({...doc.data(), 'id': doc.id}),
+            (doc) => MedicineReminder.fromJson({...doc.data() as Map<String, dynamic>, 'id': doc.id}),
           )
           .toList();
     } catch (e) {

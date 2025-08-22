@@ -21,7 +21,7 @@ class AuthService {
     }
   }
 
-  Future<UserCredential?> createAccount(
+Future<UserCredential?> createAccount(
     String email,
     String password,
     String name,
@@ -33,13 +33,14 @@ class AuthService {
         password: password,
       );
 
-      // Update display name
       await result.user?.updateDisplayName(name);
+      final photoURL = result.user?.photoURL;
 
-      // Create user profile in Firestore
       await _repository.updateUserProfile({
         'name': name,
         'email': normalizedEmail,
+        'photoURL':
+            photoURL ?? '',
         'createdAt': DateTime.now().toIso8601String(),
       });
 

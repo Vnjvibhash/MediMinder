@@ -20,12 +20,14 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
   late final TextEditingController _medicineController;
   late final TextEditingController _doseController;
   late final TextEditingController _categoryController;
+  late final TextEditingController _otherCategoryController;
+  bool _isOtherCategorySelected = false;
+  bool _isLoading = false;
 
   List<TimeOfDay> _selectedTimes = [];
   late DateTime _startDate;
   late DateTime _endDate;
   List<String> _selectedDays = [];
-  bool _isLoading = false;
 
   final List<String> _commonCategories = [
     'Heart',
@@ -38,6 +40,7 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     'Mental Health',
     'Allergy',
     'Digestive',
+    'Other',
   ];
 
   final List<String> _weekDays = [
@@ -62,7 +65,8 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     );
     _medicineController = TextEditingController(text: widget.reminder.medicine);
     _doseController = TextEditingController(text: widget.reminder.dose);
-    _categoryController = TextEditingController(text: widget.reminder.category);
+    _categoryController = TextEditingController();
+    _otherCategoryController = TextEditingController();
 
     _selectedTimes = widget.reminder.times.map((timeStr) {
       final parts = timeStr.split(':');
@@ -72,6 +76,18 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     _startDate = widget.reminder.startDate;
     _endDate = widget.reminder.endDate;
     _selectedDays = List.from(widget.reminder.days);
+
+    if (_commonCategories.contains(widget.reminder.category)) {
+      if (widget.reminder.category == 'Other') {
+        _isOtherCategorySelected = true;
+      } else {
+        _isOtherCategorySelected = false;
+      }
+      _categoryController.text = widget.reminder.category;
+    } else {
+      _isOtherCategorySelected = true;
+      _otherCategoryController.text = widget.reminder.category;
+    }
   }
 
   @override
@@ -80,6 +96,7 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     _medicineController.dispose();
     _doseController.dispose();
     _categoryController.dispose();
+    _otherCategoryController.dispose();
     super.dispose();
   }
 
@@ -148,6 +165,27 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
               ),
               const SizedBox(height: 16),
               _buildCategoryDropdown(),
+              if (_isOtherCategorySelected)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: CustomTextField(
+                    controller: _otherCategoryController,
+                    label: 'Enter category',
+                    prefixIcon: Icons.edit,
+                    validator: (value) {
+                      if (_isOtherCategorySelected &&
+                          (value == null || value.isEmpty)) {
+                        return 'Please enter a category';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _categoryController.text = value;
+                      });
+                    },
+                  ),
+                ),
               const SizedBox(height: 32),
 
               _buildSectionHeader('Schedule', Icons.schedule),
@@ -204,20 +242,27 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
 
   Widget _buildCategoryDropdown() {
     final theme = Theme.of(context);
+
+    final dropdownValue =
+        !_isOtherCategorySelected &&
+            _commonCategories.contains(_categoryController.text)
+        ? _categoryController.text
+        : (_isOtherCategorySelected ? 'Other' : null);
+
     return DropdownButtonFormField<String>(
-      value: _categoryController.text.isEmpty ? null : _categoryController.text,
+      value: dropdownValue,
       decoration: InputDecoration(
         labelText: 'Category/Condition',
         prefixIcon: Icon(
           Icons.category_outlined,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+          color: theme.colorScheme.onSurface.withAlpha(60),
         ),
         filled: true,
         fillColor: theme.colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            color: theme.colorScheme.outline.withAlpha(30),
           ),
         ),
       ),
@@ -226,12 +271,26 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
       }).toList(),
       onChanged: (value) {
         setState(() {
-          _categoryController.text = value ?? '';
+          _isOtherCategorySelected = value == 'Other';
+          if (_isOtherCategorySelected) {
+            _categoryController.clear();
+            // Keep existing value in Other field if user is editing
+            if (_otherCategoryController.text.isEmpty) {
+              _otherCategoryController.text = '';
+            }
+          } else {
+            _categoryController.text = value ?? '';
+            _otherCategoryController.clear();
+          }
         });
       },
       validator: (value) {
-        if (value == null || value.isEmpty) {
+        if ((value == null || value.isEmpty) && !_isOtherCategorySelected) {
           return 'Please select a category';
+        }
+        if (_isOtherCategorySelected &&
+            (_otherCategoryController.text.isEmpty)) {
+          return 'Please enter a category';
         }
         return null;
       },
@@ -464,11 +523,15 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
           .toList();
       final nextSchedule = _calculateNextSchedule();
 
+      final reminderCategory = _isOtherCategorySelected
+          ? _otherCategoryController.text.trim()
+          : _categoryController.text.trim();
+
       final updatedReminder = widget.reminder.copyWith(
         patientName: _patientNameController.text.trim(),
         medicine: _medicineController.text.trim(),
         dose: _doseController.text.trim(),
-        category: _categoryController.text,
+        category: reminderCategory,
         times: times,
         days: _selectedDays,
         startDate: _startDate,

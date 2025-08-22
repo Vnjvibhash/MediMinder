@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mediminder/screens/home/home_screen.dart';
 import 'package:mediminder/services/auth_service.dart';
 import 'package:mediminder/widgets/custom_button.dart';
 import 'package:mediminder/widgets/custom_text_field.dart';
-import 'package:video_player/video_player.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -12,7 +12,6 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  late VideoPlayerController _videoController;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -25,20 +24,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscureConfirmPassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    _videoController =
-        VideoPlayerController.asset('assets/videos/doctor_patient.mp4')
-          ..initialize().then((_) {
-            setState(() {});
-            _videoController.setLooping(true);
-            _videoController.play();
-          });
-  }
-
-  @override
   void dispose() {
-    _videoController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -63,6 +49,12 @@ class _SignupScreenState extends State<SignupScreen> {
           backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
+      // On successful login navigate to HomeScreen
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,17 +78,17 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          if (_videoController.value.isInitialized)
-            SizedBox.expand(
-              child: FittedBox(
+          SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: Image.asset(
+                'assets/gifs/doctor_patient.gif',
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
                 fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _videoController.value.size.width,
-                  height: _videoController.value.size.height,
-                  child: VideoPlayer(_videoController),
-                ),
               ),
             ),
+          ),
           Container(color: Colors.black.withOpacity(0.8)),
           SafeArea(
             child: SingleChildScrollView(

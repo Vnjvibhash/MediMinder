@@ -9,9 +9,9 @@ import 'package:mediminder/screens/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  // Initialize notifications
   await NotificationService().initialize();
   await NotificationService().requestPermissions();
-
   runApp(const MyApp());
 }
 

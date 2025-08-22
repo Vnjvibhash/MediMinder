@@ -13,7 +13,8 @@
     <application
         android:label="mediminder"
         android:name="${applicationName}"
-        android:icon="@drawable/mediminder">
+        android:icon="@drawable/mediminder"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
