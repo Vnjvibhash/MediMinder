@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mediminder/screens/patients/add_patient_model.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mediminder/providers/medicine_provider.dart';
 import 'package:mediminder/firestore/firestore_data_schema.dart';
-import 'package:mediminder/widgets/custom_button.dart';
-import 'package:mediminder/widgets/custom_text_field.dart';
 
 class PatientsScreen extends StatefulWidget {
   const PatientsScreen({super.key});
@@ -217,164 +215,22 @@ class _PatientsScreenState extends State<PatientsScreen> {
     _showPatientDialog(patient: patient);
   }
 
-  void _showPatientDialog({Patient? patient}) {
-    final isEditing = patient != null;
-    final nameController = TextEditingController(text: patient?.name ?? '');
-    final ageController = TextEditingController(
-      text: patient?.age.toString() ?? '',
-    );
-    String selectedGender = patient?.gender ?? 'Male';
-
-    showModalBottomSheet(
+Future<void> _showPatientDialog({Patient? patient}) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEditing ? 'Edit Patient' : 'Add Patient',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-              CustomTextField(
-                controller: nameController,
-                label: 'Full Name',
-                prefixIcon: Icons.person_outline,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                controller: ageController,
-                label: 'Age',
-                prefixIcon: Icons.cake_outlined,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedGender,
-                decoration: InputDecoration(
-                  labelText: 'Gender',
-                  prefixIcon: Icon(
-                    Icons.people_outline,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.3),
-                    ),
-                  ),
-                ),
-                items: ['Male', 'Female', 'Other'].map((gender) {
-                  return DropdownMenuItem(value: gender, child: Text(gender));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedGender = value ?? 'Male';
-                  });
-                },
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                onPressed: () async {
-                  if (nameController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a name')),
-                    );
-                    return;
-                  }
-
-                  if (ageController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter an age')),
-                    );
-                    return;
-                  }
-
-                  final age = int.tryParse(ageController.text.trim());
-                  if (age == null || age <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a valid age')),
-                    );
-                    return;
-                  }
-
-                  try {
-                    if (isEditing) {
-                      final updatedPatient = patient.copyWith(
-                        name: nameController.text.trim(),
-                        age: age,
-                        gender: selectedGender,
-                      );
-                      await context.read<MedicineProvider>().updatePatient(
-                        updatedPatient,
-                      );
-                    } else {
-                      final newPatient = Patient(
-                        id: '',
-                        name: nameController.text.trim(),
-                        age: age,
-                        gender: selectedGender,
-                        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
-                        createdAt: DateTime.now(),
-                        updatedAt: DateTime.now(),
-                      );
-                      await context.read<MedicineProvider>().addPatient(
-                        newPatient,
-                      );
-                    }
-
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isEditing
-                                ? 'Patient updated successfully'
-                                : 'Patient added successfully',
-                          ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: ${e.toString()}'),
-                          backgroundColor: Theme.of(context).colorScheme.error,
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text(isEditing ? 'Update Patient' : 'Add Patient'),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (context) => AddOrEditPatientModal(patient: patient),
     );
+
+    if (result == true) {
+      debugPrint('Patient added or updated successfully');
+      context.read<MedicineProvider>().loadPatients();
+    }
   }
+
 
   void _showDeletePatientDialog(Patient patient) {
     showDialog(

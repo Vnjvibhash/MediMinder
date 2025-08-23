@@ -196,7 +196,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
     final theme = Theme.of(context);
     final dropdownValue = _commonCategories.contains(_categoryController.text)
         ? _categoryController.text
-        : 'Other';
+        : 'Heart';
 
     return DropdownButtonFormField<String>(
       value: dropdownValue,

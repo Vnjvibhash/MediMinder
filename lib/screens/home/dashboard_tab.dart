@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:mediminder/providers/medicine_provider.dart';
 import 'package:mediminder/firestore/firestore_data_schema.dart';
 import 'package:mediminder/widgets/custom_button.dart';
@@ -32,6 +34,7 @@ class _DashboardTabState extends State<DashboardTab> {
     final theme = Theme.of(context);
     final now = DateTime.now();
     final dateFormat = DateFormat('EEEE, MMMM d');
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       body: SafeArea(
@@ -39,6 +42,7 @@ class _DashboardTabState extends State<DashboardTab> {
           onRefresh: _refreshData,
           child: CustomScrollView(
             slivers: [
+              // 🔹 Greeting Header
               SliverToBoxAdapter(
                 child: Container(
                   padding: const EdgeInsets.all(24),
@@ -73,10 +77,19 @@ class _DashboardTabState extends State<DashboardTab> {
                                             .onPrimaryContainer,
                                       ),
                                 ),
-                                const SizedBox(height: 4),
+                                Text(
+                                  user?.displayName ?? 'User',
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w100,
+                                    color: theme.colorScheme.onPrimaryContainer
+                                        .withValues(alpha: 0.8),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
                                   dateFormat.format(now),
                                   style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontSize: 12,
                                     color: theme.colorScheme.onPrimaryContainer
                                         .withValues(alpha: 0.8),
                                   ),
@@ -131,6 +144,8 @@ class _DashboardTabState extends State<DashboardTab> {
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+              // 🔹 Stats + Charts Section
               Consumer<MedicineProvider>(
                 builder: (context, provider, child) {
                   if (provider.isLoading) {
@@ -174,7 +189,6 @@ class _DashboardTabState extends State<DashboardTab> {
 
                   return SliverList(
                     delegate: SliverChildListDelegate([
-                      // Statistics Section
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
@@ -196,6 +210,8 @@ class _DashboardTabState extends State<DashboardTab> {
                               ],
                             ),
                             const SizedBox(height: 16),
+
+                            // Quick Stats Cards
                             Row(
                               children: [
                                 Expanded(
@@ -229,12 +245,139 @@ class _DashboardTabState extends State<DashboardTab> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 24),
+
+                            // Pie Chart
+                            SizedBox(
+                              height: 200,
+                              child: PieChart(
+                                PieChartData(
+                                  sectionsSpace: 2,
+                                  centerSpaceRadius: 50,
+                                  sections: [
+                                    PieChartSectionData(
+                                      color: Colors.green,
+                                      value:
+                                          (provider.statistics['dosesTaken'] ??
+                                                  0)
+                                              .toDouble(),
+                                      title: 'Taken',
+                                      radius: 60,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      color: Colors.red,
+                                      value:
+                                          (provider.statistics['dosesMissed'] ??
+                                                  0)
+                                              .toDouble(),
+                                      title: 'Missed',
+                                      radius: 60,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    PieChartSectionData(
+                                      color: Colors.orange,
+                                      value:
+                                          (provider.statistics['dosesSkipped'] ??
+                                                  0)
+                                              .toDouble(),
+                                      title: 'Skipped',
+                                      radius: 60,
+                                      titleStyle: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+
+                            // Weekly Bar Chart
+                            Text(
+                              "Weekly Trend",
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 200,
+                              child: BarChart(
+                                BarChartData(
+                                  alignment: BarChartAlignment.spaceAround,
+                                  titlesData: FlTitlesData(
+                                    leftTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    rightTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    topTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final days = [
+                                            'M',
+                                            'T',
+                                            'W',
+                                            'T',
+                                            'F',
+                                            'S',
+                                            'S',
+                                          ];
+                                          return Text(days[value.toInt() % 7]);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  gridData: FlGridData(show: false),
+                                  barGroups: List.generate(7, (i) {
+                                    final taken =
+                                        (provider.statistics['day${i}_taken'] ??
+                                                0)
+                                            .toDouble();
+                                    final missed =
+                                        (provider.statistics['day${i}_missed'] ??
+                                                0)
+                                            .toDouble();
+
+                                    return BarChartGroupData(
+                                      x: i,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: taken,
+                                          color: Colors.green,
+                                          width: 8,
+                                        ),
+                                        BarChartRodData(
+                                          toY: missed,
+                                          color: Colors.red,
+                                          width: 8,
+                                        ),
+                                      ],
+                                    );
+                                  }),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 32),
 
-                      // Today's Reminders
+                      // 🔹 Today's Reminders
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Row(
@@ -273,7 +416,6 @@ class _DashboardTabState extends State<DashboardTab> {
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -304,7 +446,6 @@ class _DashboardTabState extends State<DashboardTab> {
                             ),
                           );
                         }),
-
                       const SizedBox(height: 32),
                     ]),
                   );
@@ -324,7 +465,6 @@ class _DashboardTabState extends State<DashboardTab> {
     IconData icon,
   ) {
     final theme = Theme.of(context);
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -359,15 +499,15 @@ class _DashboardTabState extends State<DashboardTab> {
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Morning';
-    if (hour < 17) return 'Afternoon';
-    return 'Evening';
+    if (hour >= 3 && hour < 12) return 'Morning';
+    if (hour >= 12 && hour < 17) return 'Afternoon';
+    if (hour >= 17 && hour < 22) return 'Evening';
+    return 'Night';
   }
 
   Future<void> _markDose(MedicineReminder reminder, DoseStatus status) async {
     try {
       await context.read<MedicineProvider>().recordDose(reminder, status);
-
       if (mounted) {
         final statusText = status == DoseStatus.taken ? 'taken' : 'skipped';
         ScaffoldMessenger.of(context).showSnackBar(

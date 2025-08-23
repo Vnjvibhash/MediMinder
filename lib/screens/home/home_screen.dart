@@ -15,20 +15,37 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  late PageController _pageController;
 
-  final List<Widget> _tabs = [
-    const DashboardTab(),
-    const RemindersTab(),
-    const HistoryTab(),
-    const ProfileTab(),
+  final List<Widget> _tabs = const [
+    DashboardTab(),
+    RemindersTab(),
+    HistoryTab(),
+    ProfileTab(),
   ];
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MedicineProvider>().initializeData();
     });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    setState(() => _currentIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -36,54 +53,72 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _tabs),
+      body: PageView(
+        controller: _pageController,
+        children: _tabs,
+        onPageChanged: (index) => setState(() => _currentIndex = index),
+      ),
+
+      /// Bottom Navigation with slide effect
       bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+              color: theme.colorScheme.onSurface.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: theme.colorScheme.primary,
-          unselectedItemColor: theme.colorScheme.onSurface.withValues(
-            alpha: 0.6,
-          ),
-          selectedLabelStyle: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: theme.textTheme.labelSmall,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.medication_outlined),
-              activeIcon: Icon(Icons.medication),
-              label: 'Reminders',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history_outlined),
-              activeIcon: Icon(Icons.history),
-              label: 'History',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(4, (index) {
+            final icons = [
+              Icons.dashboard_outlined,
+              Icons.medication_outlined,
+              Icons.history_outlined,
+              Icons.person_outline,
+            ];
+            final activeIcons = [
+              Icons.dashboard,
+              Icons.medication,
+              Icons.history,
+              Icons.person,
+            ];
+            final labels = ["Dashboard", "Reminders", "History", "Profile"];
+            final isSelected = _currentIndex == index;
+
+            return GestureDetector(
+              onTap: () => _onTabTapped(index),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isSelected ? activeIcons[index] : icons[index],
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  const SizedBox(height: 4),
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                    child: Text(labels[index]),
+                  ),
+                ],
+              ),
+            );
+          }),
         ),
       ),
     );

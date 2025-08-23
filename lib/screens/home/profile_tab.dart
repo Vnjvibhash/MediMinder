@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mediminder/screens/auth/login_screen.dart';
+import 'package:mediminder/screens/patients/patients_screen.dart';
+import 'package:mediminder/services/export_service.dart';
 import 'package:provider/provider.dart';
 import 'package:mediminder/services/auth_service.dart';
 import 'package:mediminder/providers/medicine_provider.dart';
-import 'package:mediminder/screens/patients/patients_screen.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
+
+  Future<void> _refreshData(BuildContext context) async {
+    // Call provider function to reload stats
+    await context.read<MedicineProvider>().loadStatistics();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,218 +22,223 @@ class ProfileTab extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Profile Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primaryContainer,
-                      theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
-                    ],
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: theme.colorScheme.onPrimaryContainer
-                          .withAlpha(25),
-                      backgroundImage: user?.photoURL != null
-                          ? NetworkImage(user!.photoURL!)
-                          : null,
-                      child: user?.photoURL == null
-                          ? Icon(
-                              Icons.person,
-                              size: 48,
-                              color: theme.colorScheme.onPrimaryContainer,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      user?.displayName ?? 'User',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.email ?? '',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer.withValues(
-                          alpha: 0.8,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Statistics Section
-              const SizedBox(height: 24),
-              Consumer<MedicineProvider>(
-                builder: (context, provider, child) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Your Statistics',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                context,
-                                'Active\nReminders',
-                                '${provider.statistics['totalReminders'] ?? 0}',
-                                Icons.medication,
-                                theme.colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                context,
-                                'Patients',
-                                '${provider.statistics['totalPatients'] ?? 0}',
-                                Icons.people,
-                                Colors.blue,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                context,
-                                'Doses\nTaken',
-                                '${provider.statistics['dosesTaken'] ?? 0}',
-                                Icons.check_circle,
-                                Colors.green,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildStatCard(
-                                context,
-                                'Doses\nMissed',
-                                '${provider.statistics['dosesMissed'] ?? 0}',
-                                Icons.cancel,
-                                Colors.red,
-                              ),
-                            ),
-                          ],
+        child: RefreshIndicator(
+          onRefresh: () => _refreshData(context),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                // Profile Header
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.colorScheme.primaryContainer,
+                        theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.7,
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-
-              // Menu Items
-              const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Manage',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: theme.colorScheme.onPrimaryContainer
+                            .withAlpha(25),
+                        backgroundImage: user?.photoURL != null
+                            ? NetworkImage(user!.photoURL!)
+                            : null,
+                        child: user?.photoURL == null
+                            ? Icon(
+                                Icons.person,
+                                size: 48,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              )
+                            : null,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildMenuItem(
-                      context,
-                      'Manage Patients',
-                      'Add, edit, or remove patients',
-                      Icons.people_outline,
-                      () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PatientsScreen(),
+                      const SizedBox(height: 16),
+                      Text(
+                        user?.displayName ?? 'User',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.email ?? '',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer
+                              .withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Statistics Section
+                const SizedBox(height: 24),
+                Consumer<MedicineProvider>(
+                  builder: (context, provider, child) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your Statistics',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      'Notification Settings',
-                      'Manage your notification preferences',
-                      Icons.notifications_outlined,
-                      () {
-                        _showNotificationSettings(context);
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      'Export Data',
-                      'Export your medicine history',
-                      Icons.download_outlined,
-                      () {
-                        _showExportOptions(context);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Account',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Active\nReminders',
+                                  '${provider.statistics['totalReminders'] ?? 0}',
+                                  Icons.medication,
+                                  theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Patients',
+                                  '${provider.statistics['totalPatients'] ?? 0}',
+                                  Icons.people,
+                                  Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Doses\nTaken',
+                                  '${provider.statistics['dosesTaken'] ?? 0}',
+                                  Icons.check_circle,
+                                  Colors.green,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildStatCard(
+                                  context,
+                                  'Doses\nMissed',
+                                  '${provider.statistics['dosesMissed'] ?? 0}',
+                                  Icons.cancel,
+                                  Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildMenuItem(
-                      context,
-                      'Change Password',
-                      'Update your account password',
-                      Icons.lock_outline,
-                      () {
-                        _showChangePasswordDialog(context);
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      'Sign Out',
-                      'Sign out of your account',
-                      Icons.logout,
-                      () {
-                        _showSignOutDialog(context);
-                      },
-                      isDestructive: true,
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              ),
 
-              const SizedBox(height: 32),
-            ],
+                // Menu Items
+                const SizedBox(height: 32),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Manage',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildMenuItem(
+                        context,
+                        'Manage Patients',
+                        'Add, edit, or remove patients',
+                        Icons.people_outline,
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PatientsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        'Notification Settings',
+                        'Manage your notification preferences',
+                        Icons.notifications_outlined,
+                        () {
+                          _showNotificationSettings(context);
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        'Export Data',
+                        'Export your medicine history',
+                        Icons.download_outlined,
+                        () {
+                          _showExportOptions(context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Account',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildMenuItem(
+                        context,
+                        'Change Password',
+                        'Update your account password',
+                        Icons.lock_outline,
+                        () {
+                          _showChangePasswordDialog(context);
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        'Sign Out',
+                        'Sign out of your account',
+                        Icons.logout,
+                        () {
+                          _showSignOutDialog(context);
+                        },
+                        isDestructive: true,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),
@@ -342,6 +353,15 @@ class ProfileTab extends StatelessWidget {
   }
 
   void _showExportOptions(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No user logged in')));
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -364,22 +384,48 @@ class ProfileTab extends StatelessWidget {
               leading: const Icon(Icons.table_chart),
               title: const Text('Export as CSV'),
               subtitle: const Text('Spreadsheet format'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('CSV export coming soon')),
-                );
+                try {
+                  final data = await FirebaseDataService.fetchMedicines(
+                    user.uid,
+                  );
+                  if (data.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No data to export')),
+                    );
+                    return;
+                  }
+                  await ExportService.exportCSV(data);
+                } catch (e) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
               },
             ),
             ListTile(
               leading: const Icon(Icons.picture_as_pdf),
               title: const Text('Export as PDF'),
               subtitle: const Text('Printable format'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('PDF export coming soon')),
-                );
+                try {
+                  final data = await FirebaseDataService.fetchMedicines(
+                    user.uid,
+                  );
+                  if (data.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No data to export')),
+                    );
+                    return;
+                  }
+                  await ExportService.exportPDF(data);
+                } catch (e) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
               },
             ),
           ],
