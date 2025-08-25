@@ -43,7 +43,6 @@ flutter run
 ## Project Structure
 ```bash
 └── lib
-    ├── firebase_options.dart
     ├── firestore
         └── firestore_data_schema.dart
     ├── main.dart
@@ -62,6 +61,7 @@ flutter run
         │   ├── profile_tab.dart
         │   └── reminders_tab.dart
         ├── patients
+        │   ├── add_patient_model.dart
         │   └── patients_screen.dart
         ├── reminders
         │   ├── add_reminder_screen.dart
@@ -69,6 +69,7 @@ flutter run
         └── splash_screen.dart
     ├── services
         ├── auth_service.dart
+        ├── export_service.dart
         └── notification_service.dart
     ├── theme.dart
     └── widgets
