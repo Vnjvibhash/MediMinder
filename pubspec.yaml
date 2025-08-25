@@ -27,6 +27,7 @@ dependencies:
   share_plus: ^11.1.0
   video_player: ^2.10.0
   path_provider: ^2.1.5
+  flutter_launcher_icons: ^0.14.4
 
 dev_dependencies:
   flutter_test:
@@ -42,3 +43,10 @@ flutter:
     - assets/videos/
     - assets/animations/
     - assets/gifs/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/mediminder.png"
+  remove_alpha_ios: true
+
